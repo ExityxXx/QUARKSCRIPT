@@ -1,0 +1,20 @@
+        STATIC TYPE
+                      TYPE_POINTER   ASSIGN
+                            ↓           ↓
+    var     variable_name   :   type    =     <value>
+
+     ^             ^              ^              ^
+  KEYWORD      IDENTIFIER     TYPE_INIT        VALUE
+
+structure : ["KEYWORD": "var", "IDENTIFIER": "variable_name", "TYPE_POINTER": ":", "TYPE_INIT": "type", "ASSIGN": "=", "VALUE": "<value>"]
+
+        DYNAMIC TYPE
+    var      variable_name      :=      <value>
+
+     ^              ^            ^          ^
+
+   KEYWORD     IDENTIFIER      ASSIGN     VALUE
+
+structure : ["KEYWORD": "var", "IDENTIFIER": "variable_name", "ASSIGN": ":=", "VALUE": "<value>"]
+
+
