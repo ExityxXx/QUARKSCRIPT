@@ -1,0 +1,63 @@
+```
+// Определение переменной
+// Это комментарий
+
+var value := 50; // Определяется
+var value : int = 50; // Опредедяется статически
+var value; // Неявное определение переменой
+var value := int; // Явное определение переменной без зн-я
+
+
+// Команда вывода
+stdout "Hello!";
+stdout 6;
+stdout value;
+stdout 5 + 10 - 20 / (20 * .2);
+
+free name; // Удаляет переменную
+
+stdout "Hello, " + 'World!'; // Конкатенация строк
+
+stdout sequence(0, 10); // Выведет последовательность чисел от 0 до 10
+
+var input : int = stdin "Enter value: "; // Ввод, который ожидает тип int
+
+if input == 10 {
+    stdout "input value is == 10";
+} else if input >= 25 {
+    stdout "input value is >= 25";
+} else if input == 0 {
+    stdout "input value is == 0"
+} else {
+    stdout input as float, input as int; // Аналог питоновского float(input) и int(input)
+};
+
+var count : int = 0;
+
+while count <= 10 {
+    count++ // Инкремент
+    stdout count;
+}
+
+var text : string = "Hello, World";
+
+for var i : int = 20 as local in range(0, 10) {
+    var el := text[i];
+    stdout el;
+}
+
+
+func greet(name : string) -> void { // Если void, ожидается ничего не будет возвращать
+    stdout "Hello, " + name;
+}
+
+recurse func factorial(n : int) -> self[int] { // Если функция рекурсивна и вовзращает саму себя можно указать self и self[] с конкретным типом внутри "[]"
+    if n == 1 {
+        return 1
+    }
+    return factorial(n - 1) * n as int // Какой конкретно тип возвращается
+}
+
+var five_fac : factorial = factorial(5); // Тип факториал это название функций, переменная типизируется как функция, которая возвращает саму себя
+stdout five_fac; // Выведет: 120
+```
