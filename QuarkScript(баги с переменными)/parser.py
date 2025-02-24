@@ -171,26 +171,15 @@ class Parser:
         while self.current_token is not None and self.current_token.type in ("PLUS", "MINUS"):
             op = self.current_token
             self.advance()
-            if self.current_token is None or self.current_token.type not in (
-            "INTEGER", "FLOAT", "LEFT_PAREN", "STRING", "VAR_IDENTIFIER"):
-                line = op.line
-                column = op.column
-                raise Error("SyntaxError", "Expected term after operator", line, column)
-
             right = self.parse_term()
 
-            if isinstance(left, StringNode) and isinstance(right, StringNode) and op.type == "PLUS":
-                left = ConcatenationNode(left, right)
-            elif isinstance(left, ConcatenationNode) and isinstance(right, StringNode) and op.type == "PLUS":
+
+            if (isinstance(left, StringNode) or isinstance(right, StringNode) or
+                    isinstance(left, ConcatenationNode) or isinstance(right, ConcatenationNode) or isinstance(right,
+                                                                                                              VariableNode) or isinstance(
+                        left, VariableNode)):
                 left = ConcatenationNode(left, right)
             else:
-
-
-                if (isinstance(left, StringNode) and not isinstance(right, StringNode)) or \
-                        (not isinstance(left, StringNode) and isinstance(right, StringNode)):
-                    line = op.line
-                    column = op.column
-                    raise Error("TypeError", f"Concatenation of two types is not possible: {left.__class__.__name__}[{left.value}] {op.value} {right.__class__.__name__}[\"{right.value}\"]", line, column)
                 left = BinOpNode(op.type, left, right)
 
         return left
@@ -328,21 +317,6 @@ class ConcatenationNode(ASTNode):
     def __init__(self, left, right):
         self.left = left
         self.right = right
-
-    def get_value(self, node, interpreter):
-        if isinstance(node, StringNode):
-            return node.value
-        elif isinstance(node, VariableNode):
-            var_name = node.name
-            if var_name in interpreter.variables:
-                return str(interpreter.variables[var_name])
-            else:
-                raise Exception(f"Variable '{var_name}' is not defined")
-        elif isinstance(node, ConcatenationNode):
-            return self.get_value(node.left, interpreter) + self.get_value(node.right, interpreter)
-
-        else:
-            return str(node)
 
 
     def __repr__(self):
