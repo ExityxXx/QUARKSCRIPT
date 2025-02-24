@@ -13,14 +13,16 @@ OPERATORS = {
     "SEMI_COLON": ";",
     "ASSIGN": "=",
     "COLON": ":",
-    "DYNAMIC_COLON": ":="
+    "DYNAMIC_COLON": ":=",
+    "COMMA": ","
 }
 
 KEYWORDS = {
     "var": "VAR_KEYWORD",
     "int": "TYPE_INT",
     "float": "TYPE_FLOAT",
-    "string": "TYPE_STRING"
+    "string": "TYPE_STRING",
+    "sep": "SEP_KEYWORD"
 }
 
 
@@ -131,6 +133,7 @@ class Lexer:
 
     def tokenize(self):
         tokens = []
+        is_var_context = False
 
         while self.current_char is not None:
 
@@ -175,6 +178,21 @@ class Lexer:
                 self.advance()
                 tokens.append(Token("STRING", start_line, start_column, string_value))
                 continue
+            if self.current_char == ":":
+                if self.position + 1 < len(self.text) and self.text[self.position + 1] == "=":
+                    tokens.append(Token("DYNAMIC_ASSIGN", start_line, start_column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token("COLON", start_line, start_column))
+                    self.advance()
+                    continue
+
+            if self.current_char == "=":
+                tokens.append(Token("ASSIGN", start_line, start_column))
+                self.advance()
+                continue
 
             is_operator = False
             for token_type, operator_symbol in OPERATORS.items():
@@ -189,7 +207,6 @@ class Lexer:
 
             if self.current_char.isalpha():
                 command = ""
-                start_position = self.position
                 start_line = self.line
                 start_column = self.column
 
@@ -198,42 +215,27 @@ class Lexer:
                     command += self.text[self.position]
                     self.advance()
 
-                if command in KEYWORDS:
-                    tokens.append(Token(KEYWORDS[command], start_line, start_column))
-                else:
-                    tokens.append(Token("IDENTIFIER", start_line, start_column, command))
-
-                continue
-                if self.current_char == ":":
-                    if self.position + 1 < len(self.text) and self.text[self.position + 1] == "=":
-                        tokens.append(Token("DYNAMIC_ASSIGN", self.line, self.column))
-                        self.advance()
-                        self.advance()
-                    else:
-                        tokens.append(Token("COLON", self.line, self.column))
-                        self.advance()
-                    continue
-                if self.current_char == "=":
-                    tokens.append(Token("ASSIGN", self.line, self.column))
-                    self.advance()
-                    continue
                 if command == "stdout":
                     tokens.append(Token("STDOUT", start_line, start_column))
                     self.skip_whitespace()
                     continue
 
-                # else:
-                #
-                #     self.position = start_position
-                #     self.current_char = self.text[self.position]
-                raise InvalidCharacterError(f"'{self.current_char}'", self.line, self.column)
+                if command in KEYWORDS:
+                    token = Token(KEYWORDS[command], start_line, start_column)
+                    tokens.append(token)
+                    self.skip_whitespace()
+                    continue
+                tokens.append(Token("VAR_IDENTIFIER", start_line, start_column, command))
+                self.skip_whitespace()
+                continue
+
 
             raise InvalidCharacterError(f"'{self.current_char}'", self.line, self.column)
-
         return tokens
 
 
 def run(content):
     tokens = Lexer(content).tokenize()
     return tokens
+
 
