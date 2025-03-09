@@ -1,3 +1,4 @@
+
 class Error(BaseException):
     def __init__(self, error_name, details, code_line, column):
         self.error_name = error_name
@@ -20,3 +21,9 @@ class StringError(Error):
     def __str__(self):
         return super().__str__()
 
+class InterpreterErrors(Exception):
+    def __init__(self, error_name, details):
+        self.error_name = error_name
+        self.details = details
+    def __str__(self):
+        return f"{self.error_name}: {self.details}"
