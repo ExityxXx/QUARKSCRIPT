@@ -1,7 +1,9 @@
-
+from colorama import Fore, init
 from exception import *
+import string
+init()
+DIGITS = string.digits
 
-DIGITS = "0123456789"
 OPERATORS = {
     "PLUS": "+",
     "MINUS": "-",
@@ -14,7 +16,9 @@ OPERATORS = {
     "ASSIGN": "=",
     "COLON": ":",
     "DYNAMIC_COLON": ":=",
-    "COMMA": ","
+    "COMMA": ",",
+    "LEFT_BRACE": "{",
+    "RIGHT_BRACE": "}"
 }
 
 KEYWORDS = {
@@ -22,7 +26,12 @@ KEYWORDS = {
     "int": "TYPE_INT",
     "float": "TYPE_FLOAT",
     "string": "TYPE_STRING",
-    "sep": "SEP_KEYWORD"
+    "bool": "TYPE_BOOL",
+    "stdout": "STDOUT",
+    "stdin": "STDIN",
+    "true": "TRUE",
+    "false": "FALSE",
+
 }
 
 
@@ -35,8 +44,9 @@ class Token:
 
     def __repr__(self):
         if self.value:
-            return f"(TYPE : {self.type} | VALUE : {self.value} | LINE : {self.line} | COLUMN : {self.column})"
-        return f"(OPERATOR : {self.type} | LINE : {self.line} | COLUMN : {self.column})"
+            return f"Token(type={Fore.RED}{self.type}{Fore.RESET}, value={Fore.CYAN}{self.value}{Fore.RESET}, line={Fore.GREEN}{self.line}{Fore.RESET}, column={Fore.GREEN}{self.column}{Fore.RESET})"
+        return f"Operator(operator={Fore.MAGENTA}{self.type}{Fore.RESET}, line={Fore.GREEN}{self.line}{Fore.RESET}, column={Fore.GREEN}{self.column}{Fore.RESET})"
+
 
 class Lexer:
     def __init__(self, text):
@@ -52,8 +62,6 @@ class Lexer:
             self.current_char = self.text[self.position]
         else:
             self.current_char = None
-
-
 
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
@@ -96,8 +104,8 @@ class Lexer:
 
         return result
 
-
-    def is_valid_expression_char(self, char):
+    @staticmethod
+    def is_valid_expression_char(char):
         return char.isdigit() or char in "+-*/. \"'()"
 
     def read_expression(self):
@@ -133,7 +141,6 @@ class Lexer:
 
     def tokenize(self):
         tokens = []
-        is_var_context = False
 
         while self.current_char is not None:
 
@@ -189,11 +196,6 @@ class Lexer:
                     self.advance()
                     continue
 
-            if self.current_char == "=":
-                tokens.append(Token("ASSIGN", start_line, start_column))
-                self.advance()
-                continue
-
             is_operator = False
             for token_type, operator_symbol in OPERATORS.items():
                 if self.current_char == operator_symbol:
@@ -215,27 +217,24 @@ class Lexer:
                     command += self.text[self.position]
                     self.advance()
 
-                if command == "stdout":
-                    tokens.append(Token("STDOUT", start_line, start_column))
-                    self.skip_whitespace()
-                    continue
 
                 if command in KEYWORDS:
                     token = Token(KEYWORDS[command], start_line, start_column)
                     tokens.append(token)
                     self.skip_whitespace()
                     continue
+
                 tokens.append(Token("VAR_IDENTIFIER", start_line, start_column, command))
                 self.skip_whitespace()
                 continue
 
 
             raise InvalidCharacterError(f"'{self.current_char}'", self.line, self.column)
+
         return tokens
 
 
 def run(content):
     tokens = Lexer(content).tokenize()
     return tokens
-
 
