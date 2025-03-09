@@ -1,4 +1,4 @@
-from colorama import Fore, Back, Style, init
+from colorama import Fore, init
 from exception import *
 init()
 
@@ -24,6 +24,8 @@ class Parser:
         return statements
 
     def parse_statement(self):
+        current_token_line = self.current_token.line
+        current_token_column = self.current_token.column
         if self.current_token is None:
             return None
 
@@ -31,123 +33,97 @@ class Parser:
             statement = self.parse_stdout()
         elif self.current_token.type == "VAR_KEYWORD":
             statement = self.parse_var_declaration()
+
+        elif self.current_token.type == "VAR_IDENTIFIER":
+            variable_name = self.current_token.value
+            self.advance()
+            if self.current_token is not None and self.current_token.type == "ASSIGN":
+                self.advance()
+                expression = self.parse_expression()
+                if self.current_token is not None and self.current_token.type == "SEMI_COLON":
+                    self.advance()
+                return AssignmentNode(variable_name, expression)
+            else:
+                return VariableNode(variable_name)
         else:
             statement = self.parse_expression()
 
+
+
         if self.current_token is None or self.current_token.type != "SEMI_COLON":
-            raise SyntaxError("SyntaxError, Expected semicolon at the end of statement")
-
+            raise Error("Statement Syntax Error",
+                        "Excepted ';' at the end of statement",
+                        current_token_line, current_token_column)
         self.advance()
-
         return statement
-    # def infer_type_from_value(self, value_node):
-    #     if isinstance(value_node, IntNumberNode):
-    #         return "TYPE_INT"
-    #     elif isinstance(value_node, FloatNumberNode):
-    #         return "TYPE_FLOAT"
-    #     elif isinstance(value_node, StringNode):
-    #         return "TYPE_STRING"
-    #     elif isinstance(value_node, ConcatenationNode):
-    #         return "TYPE_STRING"
-    #     elif isinstance(value_node, BinOpNode):
-    #         left_type = self.infer_type_from_value(value_node.left)
-    #         right_type = self.infer_type_from_value(value_node.right)
-    #         if left_type == "TYPE_FLOAT" or right_type == "TYPE_FLOAT":
-    #             return "TYPE_FLOAT"
-    #         elif left_type == "TYPE_INT" and right_type == "TYPE_INT":
-    #             return "TYPE_INT"
-    #         else:
-    #             print("left_type и right type не float и не int")
-    #             return None
-    #     else:
-    #         print("Неизвестный тип")
-    #         return None
+
     def parse_var_declaration(self):
         current_token_line = self.current_token.line # запоминаем данные токена пока токен не None
         current_token_column = self.current_token.column
         self.advance() # пропускаем ключевое слово "var" и идем к идентификатору
 
-        if self.current_token is None or self.current_token.type != "VAR_IDENTIFIER": # если после слова "var" не идентификатор , выбрасываем ошибку
+        if self.current_token is None or self.current_token.type != "VAR_IDENTIFIER": # если после слова "var" не идентификатор, выбрасываем ошибку
                 raise Error(
-                    "ParserVariableSyntaxError",
-                    "Excepted variable name after command var.",
-                    current_token_line, current_token_column
-                )
+                    "Invalid Syntax",
+                    "Excepted variable name after keyword var.",
+                    current_token_line, current_token_column)
 
         var_name = self.current_token.value # записываем идентификатор переменной
-
-        self.advance() # после записи продвигаемся на следующий токен, ожидается что этот токен будет : или :=
-
-        if self.current_token is None: # предполагаю ошибка тут после того как мы продвинулись на следующий токен после записи идентификатора то current_token почему то стал None
-            raise Error(
-                "64 тут SyntaxError",
-                "Excepted ':' or ':='",
-                current_token_line, current_token_column
-            )
-
+        self.advance() # после записи продвигаемся на следующий токен, ожидается что этот токен будет: или:=
         var_type = None
-        is_dynamic_type = False
 
-        if self.current_token.type == "DYNAMIC_ASSIGN":
-            # is_dynamic_type = True
-            pass
-        elif self.current_token.type == "COLON":
+
+        if self.current_token.type == "COLON":
             self.advance()
 
-            if self.current_token is None or self.current_token.type not in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING"):
-                raise Error("SyntaxError",
+            if self.current_token is None or self.current_token.type not in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL"):
+                raise Error("Invalid Variable Declaration",
                             "Excepted type after ':'",
                             current_token_line, current_token_column
                         )
 
             var_type = self.current_token.type
-
             self.advance()
 
-        else:
-            raise Error("SyntaxError",
-                        "Excepted '=' or ':='",
-                        current_token_line, current_token_column
-                    )
+            if self.current_token.type != "ASSIGN":
+                raise Error("Invalid Syntax",
+                            "Excepted '=' after type declaration",
+                            current_token_line, current_token_column
+                        )
+            self.advance()
 
-        self.advance()
+        elif self.current_token.type == "DYNAMIC_ASSIGN":
+            self.advance()
+        elif self.current_token.type == "ASSIGN":
+            raise Error("Invalid Syntax",
+                        "You can't use '=' to declare a variable. Use ':=' or ': type ='",
+                        current_token_line, current_token_column)
+        else:
+            raise Error("Invalid Syntax",
+                        "Expected ':='  after variable id",
+                        current_token_line, current_token_column)
+
         value = self.parse_expression()
 
-        # if is_dynamic_type:
-        #     var_type = self.infer_type_from_value(value)
-        #     if var_type is None:
-        #         raise Error("TypeError",
-        #                     "VAR_TYPE IS NONE: Cannot infer type for dynamic variable",
-        #                     current_token_line, current_token_column
-        #                 )
-        # else:
-        #     if not self.check_type_compatibility(var_type, value):
-        #         raise Error("TypeError",
-        #                     f"Type mismatch: excepted {var_type}, got {value.__class__.__name__}",
-        #                     current_token_line, current_token_column
-        #                 )
-
-        if self.current_token.type != "SEMI_COLON":
-            raise SyntaxError("Excepted ';' after variable declaration.")
-
+        if self.current_token is not None and self.current_token.type != "SEMI_COLON":
+            raise Error("Invalid Syntax",
+                        "Expected ';' after variable declaration",
+                        current_token_line, current_token_column)
 
         return VariableDeclarationNode(var_name, var_type, value)
-    # def check_type_compatibility(self, var_type, value):
-    #     if var_type == "TYPE_INT":
-    #         return isinstance(value, IntNumberNode) or isinstance(value, BinOpNode) or isinstance(value, VariableNode)
-    #     elif var_type == "TYPE_FLOAT":
-    #         return isinstance(value, FloatNumberNode) or isinstance(value, BinOpNode) or isinstance(value, VariableNode)
-    #     elif var_type == "TYPE_STRING":
-    #         return isinstance(value, StringNode) or isinstance(value, ConcatenationNode) or isinstance(value, VariableNode)
-    #     else:
-    #         return False
+
     def parse_stdout(self):
+        current_token_line = self.current_token.line
+        current_token_column = self.current_token.column
         self.advance()
         if self.current_token.type == "SEMI_COLON":
             return StdoutNode(None)
 
         elif self.current_token.type == "VAR_KEYWORD":
-            raise Error("SyntaxError", "an attempt to declare a variable inside 'stdout'", self.current_token.line, self.current_token.column if self.current_token else 0)
+            raise Error("SyntaxError",
+                        "an attempt to declare a variable inside 'stdout'",
+                        current_token_line,
+                        current_token_column)
         first_value = self.parse_expression()
 
         if self.current_token is not None and self.current_token.type == "COMMA":
@@ -160,11 +136,6 @@ class Parser:
         else:
             return StdoutNode(first_value)
 
-    def parse_number(self):
-        node = IntNumberNode(self.current_token.value)
-        self.advance()
-        return node
-
     def parse_expression(self):
         left = self.parse_term()
 
@@ -172,12 +143,9 @@ class Parser:
             op = self.current_token
             self.advance()
             right = self.parse_term()
-
-
+            # левое | правое
             if (isinstance(left, StringNode) or isinstance(right, StringNode) or
-                    isinstance(left, ConcatenationNode) or isinstance(right, ConcatenationNode) or isinstance(right,
-                                                                                                              VariableNode) or isinstance(
-                        left, VariableNode)):
+                    isinstance(left, ConcatenationNode) or isinstance(right, ConcatenationNode)):
                 left = ConcatenationNode(left, right)
             else:
                 left = BinOpNode(op.type, left, right)
@@ -193,7 +161,7 @@ class Parser:
 
 
             if self.current_token is None or (self.current_token.type not in (
-            "INTEGER", "FLOAT", "LEFT_PAREN", "STRING", "VAR_IDENTIFIER") and self.current_token.type != "MINUS"):
+            "INTEGER", "FLOAT", "LEFT_PAREN", "STRING", "VAR_IDENTIFIER", "FALSE", "TRUE") and self.current_token.type != "MINUS"):
                 line = op.line
                 column = op.column
                 raise Error("SyntaxError", "Expected factor after operator", line, column)
@@ -205,7 +173,7 @@ class Parser:
             else:
                 right = self.parse_factor()
 
-            if (isinstance(left, StringNode) or isinstance(right, StringNode)):
+            if isinstance(left, StringNode) or isinstance(right, StringNode):
                 line = op.line
                 column = op.column
                 raise Error("TypeError",
@@ -227,15 +195,24 @@ class Parser:
             self.advance()
             node = self.parse_factor()
             return UnaryOpNode(op, node)
+
         if self.current_token.type == "INTEGER":
             node = IntNumberNode(self.current_token.value)
             self.advance()
             return node
+
         elif self.current_token.type == "FLOAT":
             node = FloatNumberNode(self.current_token.value)
             self.advance()
             return node
-
+        elif self.current_token.type == "TRUE":
+            node = BooleanNode(True)
+            self.advance()
+            return node
+        elif self.current_token.type == "FALSE":
+            node = BooleanNode(False)
+            self.advance()
+            return node
         elif self.current_token.type == "STRING":
             node = StringNode(self.current_token.value)
             self.advance()
@@ -267,10 +244,12 @@ class Parser:
             self.advance()
         elif self.current_token.type == "VAR_KEYWORD":
             self.advance()
+
         else:
             line = self.current_token.line if self.current_token else 1
             column = self.current_token.column if self.current_token else 1
-            raise Error("Parsing error", f"Unexpected token: {self.current_token}", line, column)
+            raise Error("Parsing error", f"Unexpected token: {self.current_token.type}", line, column)
+
 
 
 class ASTNode:
@@ -318,7 +297,6 @@ class ConcatenationNode(ASTNode):
         self.left = left
         self.right = right
 
-
     def __repr__(self):
         return f"ConcatenationNode(left={self.left}, right={self.right})"
 
@@ -341,6 +319,18 @@ class MultiValueNode(ASTNode):
         self.separator = separator
     def __repr__(self):
         return f"MultiValueNode(values={self.values}, sep={self.separator})"
+class AssignmentNode(ASTNode):
+    def __init__(self, variable_name, expression):
+        self.variable_name = variable_name
+        self.expression = expression
+    def __repr__(self):
+        return f"AssignmentNode(variable_name={self.variable_name}, expression={self.expression})"
+class BooleanNode(ASTNode):
+    def __init__(self, value):
+        self.value = value
+    def __repr__(self):
+        return f"BooleanNode(value={Fore.YELLOW}{self.value}{Fore.RESET})"
+
 def parse(tokens):
     parser = Parser(tokens)
     ast = parser.parse()
